@@ -1,79 +1,74 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# TankerApp
 
-# Getting Started
+**TankerApp** is a native Android application designed to streamline water tanker tracking and billing for apartment complexes. It replaces error-prone paper records with a simple, digital tool that helps caretakers track usage, manage vacancies, and generate fair, occupancy-based billing reports.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## 🚀 Features
 
-## Step 1: Start the Metro Server
+*   **Calendar Interface**: Intuitive, calendar-based logging for tanker deliveries and apartment vacancies.
+*   **Smart Tracking**: Automatically counts tanker deliveries (e.g., 0/8) and notifies the user when a billing cycle is complete.
+*   **Vacancy Management**: Easily mark apartments as vacant for specific date ranges to exclude them from billing.
+*   **Automated Billing**: Generates instant, accurate billing reports based on occupancy and usage.
+*   **Report Generation**: Export billing reports as **PDF** or **CSV** to share via WhatsApp or other apps.
+*   **History View**: Access a log of past billing cycles and reports.
+*   **Offline-First**: All data is stored locally on the device, requiring no internet connection or account setup.
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+## 🛠️ Technology Stack
 
-To start Metro, run the following command from the _root_ of your React Native project:
+*   **Language**: [Kotlin](https://kotlinlang.org/)
+*   **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3)
+*   **Database**: [Room](https://developer.android.com/training/data-storage/room) (SQLite)
+*   **Dependency Injection**: [Hilt](https://dagger.dev/hilt/)
+*   **Architecture**: MVVM (Model-View-ViewModel) with Unidirectional Data Flow (UDF)
+*   **Asynchrony**: Kotlin Coroutines & Flow
 
-```bash
-# using npm
-npm start
+## 📂 Project Structure
 
-# OR using Yarn
-yarn start
+The Android project is located in the `TankerApp/` directory.
+
+```text
+TankerApp/app/src/main/java/com/arun/tankerapp/
+├── core/
+│   ├── data/           # Database entities, DAOs, and Repositories
+│   ├── designsystem/   # Theme, Color, Type, and shared UI components
+│   └── util/           # Utility classes (PDF Generator, Date Extensions)
+├── di/                 # Hilt Dependency Injection modules
+├── feature/            # Feature-based packages
+│   ├── calendar/       # Calendar screen and logic
+│   ├── report/         # Report generation screen and logic
+|   └── history/        # History screen and logic
+└── ui/                 # App entry point and Navigation
 ```
 
-## Step 2: Start your Application
+## ⚡ Getting Started
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+### Prerequisites
+*   Android Studio Ladybug or newer.
+*   JDK 17 or higher.
 
-### For Android
+### Installation
 
-```bash
-# using npm
-npm run android
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/arungoks/TankerApp.git
+    cd TankerApp
+    ```
 
-# OR using Yarn
-yarn android
-```
+2.  **Open in Android Studio**:
+    *   Launch Android Studio.
+    *   Select **Open** and navigate to the `TankerApp/TankerApp` directory (the one containing `build.gradle.kts`).
 
-### For iOS
+3.  **Build and Run**:
+    *   Let Gradle sync the project dependencies.
+    *   Connect an Android device or start an emulator (API Level 26+).
+    *   Click the **Run** button (green arrow) in Android Studio.
 
-```bash
-# using npm
-npm run ios
+## 📝 Usage
 
-# OR using Yarn
-yarn ios
-```
+1.  **Setup**: On first launch, the app initializes with a master list of apartments.
+2.  **Log Activity**: Tap a date on the calendar to mark a tanker delivery or select apartments that are vacant.
+3.  **Monitor Usage**: Watch the tanker counter increment.
+4.  **Generate Report**: When the cycle completes (e.g., 8 tankers), click "Generate Report" to view and share the billing details.
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+## 📄 License
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
-
-## Step 3: Modifying your App
-
-Now that you have successfully run the app, let's modify it.
-
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+This project is open source and available under the [MIT License](LICENSE).
