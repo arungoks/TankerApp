@@ -1,0 +1,27 @@
+﻿.\gradlew.bat : 
+At line:1 char:1
++ .\gradlew.bat assembleDebug 2>&1 | Out-File -FilePath build_output.tx 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file 'C:\Users\Arun\Documents\Projects\BMAD\TankerApp\TankerApp\app\
+build.gradle.kts' line: 1
+
+* What went wrong:
+An exception occurred applying plugin request [id: 
+'com.google.dagger.hilt.android', version: '2.56']
+> Failed to apply plugin 'com.google.dagger.hilt.android'.
+   > Android BaseExtension not found.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
