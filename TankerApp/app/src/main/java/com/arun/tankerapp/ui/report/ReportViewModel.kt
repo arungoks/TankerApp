@@ -2,7 +2,7 @@ package com.arun.tankerapp.ui.report
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.arun.tankerapp.core.data.repository.ApartmentBill
+import com.arun.tankerapp.core.data.model.ApartmentBill
 import com.arun.tankerapp.core.data.repository.BillingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow

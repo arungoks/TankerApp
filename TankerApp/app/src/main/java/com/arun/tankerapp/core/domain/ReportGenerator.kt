@@ -2,7 +2,7 @@ package com.arun.tankerapp.core.domain
 
 import android.content.Context
 import androidx.core.content.FileProvider
-import com.arun.tankerapp.core.data.repository.ApartmentBill
+import com.arun.tankerapp.core.data.model.ApartmentBill
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject

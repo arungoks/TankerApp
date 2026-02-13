@@ -4,6 +4,7 @@ import com.arun.tankerapp.core.data.database.dao.ApartmentDao
 import com.arun.tankerapp.core.data.database.dao.VacancyDao
 import com.arun.tankerapp.core.data.database.entity.Apartment
 import com.arun.tankerapp.core.data.database.entity.VacancyLog
+import com.arun.tankerapp.core.data.model.ApartmentStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -60,7 +61,7 @@ class VacancyRepositoryTest {
 
     @Before
     fun setUp() {
-        repository = VacancyRepository(fakeVacancyDao, fakeApartmentDao)
+        repository = RoomVacancyRepository(fakeVacancyDao, fakeApartmentDao)
     }
 
     @Test

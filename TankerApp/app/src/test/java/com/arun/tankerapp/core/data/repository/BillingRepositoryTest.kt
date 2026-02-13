@@ -8,6 +8,7 @@ import com.arun.tankerapp.core.data.database.dao.BillingCycleDao
 import com.arun.tankerapp.core.data.database.entity.BillingCycle
 import com.arun.tankerapp.core.data.database.entity.TankerLog
 import com.arun.tankerapp.core.data.database.entity.VacancyLog
+import com.arun.tankerapp.core.data.model.ApartmentBill
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -58,7 +59,7 @@ class BillingRepositoryTest {
 
     @Before
     fun setUp() {
-        repository = BillingRepository(fakeApartmentDao, fakeTankerDao, fakeVacancyDao, fakeBillingCycleDao)
+        repository = RoomBillingRepository(fakeApartmentDao, fakeTankerDao, fakeVacancyDao, fakeBillingCycleDao)
         apartments.clear()
         tankerLogs.clear()
         vacancies.clear()

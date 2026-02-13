@@ -10,7 +10,7 @@ import java.time.YearMonth
 import javax.inject.Inject
 
 import androidx.lifecycle.viewModelScope
-import com.arun.tankerapp.core.data.repository.ApartmentStatus
+import com.arun.tankerapp.core.data.model.ApartmentStatus
 import com.arun.tankerapp.core.data.repository.TankerRepository
 import com.arun.tankerapp.core.data.repository.VacancyRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi

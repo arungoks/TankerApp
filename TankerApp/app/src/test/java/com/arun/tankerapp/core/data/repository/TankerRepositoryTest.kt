@@ -53,7 +53,7 @@ class TankerRepositoryTest {
 
     @Before
     fun setUp() {
-        repository = TankerRepository(fakeTankerDao)
+        repository = RoomTankerRepository(fakeTankerDao)
         tankerLogs.clear()
     }
 

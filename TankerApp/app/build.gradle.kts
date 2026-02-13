@@ -33,6 +33,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -41,10 +42,17 @@ android {
         compose = true
         buildConfig = true
     }
-
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/native-image/**"
+        }
+    }
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
 
@@ -81,6 +89,11 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // MongoDB
+    implementation(libs.mongodb.driver.kotlin.coroutine) {
+        exclude(group = "org.mongodb", module = "bson-record-codec")
+    }
 
     // Testing
     testImplementation(libs.junit)

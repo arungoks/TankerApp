@@ -7,6 +7,8 @@ import com.arun.tankerapp.core.data.database.dao.VacancyDao
 import com.arun.tankerapp.core.data.database.entity.Apartment
 import com.arun.tankerapp.core.data.database.entity.TankerLog
 import com.arun.tankerapp.core.data.database.entity.VacancyLog
+import com.arun.tankerapp.core.data.repository.RoomTankerRepository
+import com.arun.tankerapp.core.data.repository.RoomVacancyRepository
 import com.arun.tankerapp.core.data.repository.TankerRepository
 import com.arun.tankerapp.core.data.repository.VacancyRepository
 import kotlinx.coroutines.flow.Flow
@@ -88,8 +90,8 @@ class CalendarViewModelTest {
 
     @Before
     fun setUp() {
-        val vacancyRepository = VacancyRepository(fakeVacancyDao, fakeApartmentDao)
-        val tankerRepository = TankerRepository(fakeTankerDao)
+        val vacancyRepository = RoomVacancyRepository(fakeVacancyDao, fakeApartmentDao)
+        val tankerRepository = RoomTankerRepository(fakeTankerDao)
         val snackbarManager = com.arun.tankerapp.core.ui.SnackbarManager() // Mock or real instance
         viewModel = CalendarViewModel(vacancyRepository, tankerRepository, snackbarManager)
     }
