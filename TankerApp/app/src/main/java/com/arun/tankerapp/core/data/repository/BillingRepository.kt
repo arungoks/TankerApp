@@ -1,12 +1,16 @@
 package com.arun.tankerapp.core.data.repository
 
-import com.arun.tankerapp.core.data.database.dao.ApartmentDao
-import com.arun.tankerapp.core.data.database.dao.TankerDao
-import com.arun.tankerapp.core.data.database.dao.VacancyDao
-import com.arun.tankerapp.core.data.database.dao.BillingCycleDao
 import com.arun.tankerapp.core.data.database.entity.Apartment
+import com.arun.tankerapp.core.data.database.entity.BillingCycle
+import com.arun.tankerapp.core.data.model.firestore.BillingCycleDocument
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.toObjects
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,36 +23,59 @@ data class ApartmentBill(
 
 @Singleton
 class BillingRepository @Inject constructor(
-    private val apartmentDao: ApartmentDao,
-    private val tankerDao: TankerDao,
-    private val vacancyDao: VacancyDao,
-    private val billingCycleDao: BillingCycleDao
+    private val appFirestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val tankerRepository: TankerRepository,
+    private val vacancyRepository: VacancyRepository
 ) {
+    private val billingCyclesCollection = appFirestore.collection("billing_cycles")
+
     /**
      * Archives the current billing cycle.
      */
     suspend fun archiveCurrentCycle(startDate: LocalDate, endDate: LocalDate, totalTankers: Int) {
-        val cycle = com.arun.tankerapp.core.data.database.entity.BillingCycle(
-            startDate = startDate,
-            endDate = endDate,
-            totalTankers = totalTankers
+        val startStr = startDate.toString()
+        val docId = startStr // Use Start Date as ID? Or generated ID? StartDate is unique enough.
+        
+        val cycleDoc = BillingCycleDocument(
+            id = docId,
+            startDate = startStr,
+            endDate = endDate.toString(),
+            totalTankers = totalTankers,
+            ownerId = "Global"
         )
-        billingCycleDao.insert(cycle)
+        billingCyclesCollection.document(docId).set(cycleDoc).await()
     }
-    fun getBillingHistory(): Flow<List<com.arun.tankerapp.core.data.database.entity.BillingCycle>> {
-        return billingCycleDao.getAllCycles()
+
+    fun getBillingHistory(): Flow<List<BillingCycle>> = callbackFlow {
+        val registration = billingCyclesCollection.addSnapshotListener { snapshot, e ->
+            if (e != null) { close(e); return@addSnapshotListener }
+            
+            val cycles = snapshot?.documents?.mapNotNull { doc ->
+                val data = doc.toObject(BillingCycleDocument::class.java)
+                data?.let {
+                    BillingCycle(
+                        id = it.id.hashCode(), // Use Int hash code
+                        startDate = LocalDate.parse(it.startDate),
+                        endDate = LocalDate.parse(it.endDate),
+                        totalTankers = it.totalTankers
+                    )
+                }
+            } ?: emptyList()
+            trySend(cycles)
+            trySend(cycles)
+        }
+        awaitClose { registration.remove() }
     }
 
     /**
      * Generates a billing report for a given period.
-     * @param fromDate Start date (exclusive) - usually the last report date.
-     * @param toDate End date (inclusive) - usually today or the cycle end date.
      */
     fun getBillingReport(fromDate: LocalDate? = null, toDate: LocalDate? = null): Flow<List<ApartmentBill>> {
         return combine(
-            apartmentDao.getAllApartments(),
-            tankerDao.getAllTankerLogs(),
-            vacancyDao.getAllVacancies()
+            vacancyRepository.getAllApartments(),
+            tankerRepository.getAllTankers(),
+            vacancyRepository.getAllVacancies()
         ) { apartments, tankers, vacancies ->
             
             // 1. Filter valid tankers (count > 0) AND in range
@@ -61,6 +88,11 @@ class BillingRepository @Inject constructor(
             val totalTankers = validTankers.sumOf { it.count }
 
             // 2. Pre-process vacancies for faster lookup
+            // VacancyLog uses apartmentId: Long (hashed). 
+            // Apartment uses id: Long (hashed).
+            // But we should match via NUMBER if IDs are inconsistent.
+            // My repos convert both to Hash ID. So matching ID is safer?
+            // Actually, matching ID is fine as long as hash is stable.
             val vacancyMap = vacancies.groupBy { it.apartmentId }
 
             // 3. Calculate bill for each apartment
@@ -74,8 +106,9 @@ class BillingRepository @Inject constructor(
                     // Check if occupied on this date
                     val isVacant = aptVacancies.any { vacancy ->
                         val start = LocalDate.parse(vacancy.startDate)
-                        val end = LocalDate.parse(vacancy.endDate)
-                        !tankerDate.isBefore(start) && !tankerDate.isAfter(end)
+                        val end = if (vacancy.endDate.isNotEmpty()) LocalDate.parse(vacancy.endDate) else null
+                        
+                        !tankerDate.isBefore(start) && (end == null || !tankerDate.isAfter(end))
                     }
 
                     if (!isVacant) {
@@ -88,9 +121,7 @@ class BillingRepository @Inject constructor(
                     billableTankers = billableCount,
                     totalTankersInCycle = totalTankers
                 )
-            }.sortedBy { it.apartment.id }
+            }.sortedBy { it.apartment.id } // Or sort by number logic
         }
     }
-
-
 }

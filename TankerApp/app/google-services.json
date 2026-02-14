@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444213365356",
+    "project_id": "tankerapp-8d291",
+    "storage_bucket": "tankerapp-8d291.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444213365356:android:96e3b871f8dba35d1ae649",
+        "android_client_info": {
+          "package_name": "com.arun.tankerapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCPRH47WR5ADLzwb-wp7xLIpXc0UgvvVE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
