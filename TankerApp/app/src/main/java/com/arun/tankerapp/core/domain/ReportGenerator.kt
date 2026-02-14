@@ -56,8 +56,11 @@ class ReportGenerator @Inject constructor(
             out.println("")
             
             // Column Headers
-            // Apartment, Total Billable, [Date 1], [Date 2]...
-            val dateHeaders = dates.joinToString(",") { it.toString() }
+            // Column Headers
+            // Apartment, Total Billable, [Date 1, Occ], [Date 2, Occ]...
+            val dateHeaders = dates.joinToString(",") { date ->
+                "$date,${date} Occupancy"
+            }
             out.println("Apartment Number,Total Billable ($totalTankers Cycle),${dateHeaders}")
             
             // Data Rows
@@ -66,9 +69,11 @@ class ReportGenerator @Inject constructor(
                 sb.append(bill.apartment.number).append(",")
                 sb.append(bill.billableTankers).append(",")
                 
-                // Date Columns
+                // Date Columns (Billable, Occupancy)
                 val dateValues = dates.joinToString(",") { date ->
-                    (bill.dailyBreakdown[date] ?: 0).toString()
+                    val billing = (bill.dailyBreakdown[date] ?: 0).toString()
+                    val occupancy = (bill.dailyOccupancyBreakdown[date] ?: 0).toString()
+                    "$billing,$occupancy"
                 }
                 sb.append(dateValues)
                 
@@ -79,7 +84,9 @@ class ReportGenerator @Inject constructor(
             out.println("")
             out.print("Daily Totals,,")
             val dailyTotals = dates.map { date ->
-                bills.sumOf { it.dailyBreakdown[date] ?: 0 }
+                val tSum = bills.sumOf { it.dailyBreakdown[date] ?: 0 }
+                val oSum = bills.sumOf { it.dailyOccupancyBreakdown[date] ?: 0 }
+                "$tSum,$oSum"
             }
             out.println(dailyTotals.joinToString(","))
         }

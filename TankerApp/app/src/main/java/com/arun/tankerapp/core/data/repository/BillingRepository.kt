@@ -19,7 +19,8 @@ data class ApartmentBill(
     val apartment: Apartment,
     val billableTankers: Int,
     val totalTankersInCycle: Int,
-    val dailyBreakdown: Map<LocalDate, Int> = emptyMap()
+    val dailyBreakdown: Map<LocalDate, Int> = emptyMap(),
+    val dailyOccupancyBreakdown: Map<LocalDate, Int> = emptyMap()
 )
 
 @Singleton
@@ -74,10 +75,11 @@ class BillingRepository @Inject constructor(
      */
     fun getBillingReport(fromDate: LocalDate? = null, toDate: LocalDate? = null): Flow<List<ApartmentBill>> {
         return combine(
-            vacancyRepository.getAllApartments(),
+            vacancyRepository.getApartmentDocuments(),
             tankerRepository.getAllTankers(),
-            vacancyRepository.getAllVacancies()
-        ) { apartments, tankers, vacancies ->
+            vacancyRepository.getAllVacancies(),
+            vacancyRepository.getAllDailyOccupancies()
+        ) { aptDocs, tankers, vacancies, dailyOccupancies ->
             
             // 1. Filter valid tankers (count > 0) AND in range
             val validTankers = tankers.filter { 
@@ -89,38 +91,60 @@ class BillingRepository @Inject constructor(
             val totalTankers = validTankers.sumOf { it.count }
 
             // 2. Pre-process vacancies for faster lookup
+            // VacancyLog uses Long IDs (hashCode of apartment number)
             val vacancyMap = vacancies.groupBy { it.apartmentId }
+            
+            // Daily Occupancy uses String IDs (apartment number)
+            val dailyMap = dailyOccupancies.groupBy { it.apartmentId }
 
             // 3. Calculate bill for each apartment
-            apartments.map { apartment ->
-                val aptVacancies = vacancyMap[apartment.id] ?: emptyList()
+            aptDocs.map { doc ->
+                val aptNumber = doc.number
+                val aptIdLong = aptNumber.hashCode().toLong()
+                
+                val aptVacancies = vacancyMap[aptIdLong] ?: emptyList()
+                val aptDailyOccupancies = dailyMap[aptNumber] ?: emptyList()
+                val defaultOcc = doc.defaultOccupancy
+                
                 val dailyBreakdown = mutableMapOf<LocalDate, Int>()
+                val dailyOccupancyBreakdown = mutableMapOf<LocalDate, Int>()
                 var billableCount = 0
 
                 validTankers.forEach { tanker ->
                     val tankerDate = LocalDate.parse(tanker.date)
+                    val dateStr = tanker.date
                     
-                    // Check if occupied on this date
-                    val isVacant = aptVacancies.any { vacancy ->
+                    // Check explicit vacancy
+                    val isExplicitlyVacant = aptVacancies.any { vacancy ->
                         val start = LocalDate.parse(vacancy.startDate)
                         val end = if (vacancy.endDate.isNotEmpty()) LocalDate.parse(vacancy.endDate) else null
                         
                         !tankerDate.isBefore(start) && (end == null || !tankerDate.isAfter(end))
                     }
+                    
+                    // Check Effective Occupancy
+                    val override = aptDailyOccupancies.find { it.date == dateStr }?.occupancy
+                    val count = override ?: defaultOcc
+                    val isEffectiveVacant = isExplicitlyVacant || (count == 0)
+                    
+                    // Record Occupancy (0 if vacant)
+                    val effectiveOccupancy = if (isEffectiveVacant) 0 else count
+                    dailyOccupancyBreakdown[tankerDate] = effectiveOccupancy
 
-                    if (!isVacant) {
+                    if (!isEffectiveVacant) {
                         dailyBreakdown[tankerDate] = (dailyBreakdown[tankerDate] ?: 0) + tanker.count
                         billableCount += tanker.count
                     }
                 }
 
                 ApartmentBill(
-                    apartment = apartment,
+                    apartment = Apartment(id = aptIdLong, number = aptNumber),
                     billableTankers = billableCount,
                     totalTankersInCycle = totalTankers,
-                    dailyBreakdown = dailyBreakdown
+                    dailyBreakdown = dailyBreakdown,
+                    dailyOccupancyBreakdown = dailyOccupancyBreakdown
                 )
-            }.sortedBy { it.apartment.id } // Or sort by number logic
+            }.sortedBy { it.apartment.id } // Or sort by number logic if needed
         }
     }
 }

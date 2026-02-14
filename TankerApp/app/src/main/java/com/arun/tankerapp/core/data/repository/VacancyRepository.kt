@@ -13,7 +13,8 @@ import java.time.YearMonth
 
 data class ApartmentStatus(
     val apartment: Apartment,
-    val isVacant: Boolean
+    val isVacant: Boolean,
+    val occupancy: Int // Effective occupancy for the date
 )
 
 interface VacancyRepository {
@@ -24,4 +25,12 @@ interface VacancyRepository {
     // New methods for Billing
     fun getAllApartments(): Flow<List<Apartment>>
     fun getAllVacancies(): Flow<List<VacancyLog>>
+
+    // Occupancy
+    suspend fun seedDefaultOccupancy()
+    suspend fun updateOccupancy(apartmentId: Long, date: LocalDate, count: Int)
+    
+    // Exposed for Billing
+    fun getApartmentDocuments(): Flow<List<com.arun.tankerapp.core.data.model.firestore.ApartmentDocument>>
+    fun getAllDailyOccupancies(): Flow<List<com.arun.tankerapp.core.data.model.firestore.DailyOccupancyDocument>>
 }

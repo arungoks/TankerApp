@@ -164,42 +164,59 @@ class CalendarViewModel @Inject constructor(
         _uiState.update { it.copy(showBottomSheet = false) }
     }
 
-    private suspend fun isEditAllowed(date: LocalDate): Boolean {
-        val lastReportDate = userPreferencesRepository.getLastReportDate().firstOrNull() ?: return true
-        // Allowed if date >= lastReportDate (Start of current cycle)
-        return !date.isBefore(lastReportDate)
-    }
+    val isEditAllowed: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(
+        _uiState.map { it.selectedDate }.distinctUntilChanged(),
+        userPreferencesRepository.getLastReportDate()
+    ) { date, lastReportDate ->
+        val limit = lastReportDate ?: LocalDate.MIN
+        !date.isBefore(limit)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun onToggleVacancy(apartmentId: Long, isVacant: Boolean) {
         launchCatching {
-            val date = _uiState.value.selectedDate
-            if (!isEditAllowed(date)) {
+            if (!isEditAllowed.value) {
                 snackbarManager.showMessage("Cannot edit past records (Report Generated)")
                 return@launchCatching
             }
+            val date = _uiState.value.selectedDate
             vacancyRepository.toggleVacancy(apartmentId, date, isVacant)
         }
     }
 
     fun onIncrementTanker() {
         launchCatching {
-            val date = _uiState.value.selectedDate
-            if (!isEditAllowed(date)) {
+            if (!isEditAllowed.value) {
                 snackbarManager.showMessage("Cannot edit past records (Report Generated)")
                 return@launchCatching
             }
+            val date = _uiState.value.selectedDate
             tankerRepository.incrementTankerCount(date)
         }
     }
 
     fun onDecrementTanker() {
         launchCatching {
-            val date = _uiState.value.selectedDate
-            if (!isEditAllowed(date)) {
+            if (!isEditAllowed.value) {
                 snackbarManager.showMessage("Cannot edit past records (Report Generated)")
                 return@launchCatching
             }
+            val date = _uiState.value.selectedDate
             tankerRepository.decrementTankerCount(date)
+        }
+    }
+
+    fun onOccupancyChanged(apartmentId: Long, count: Int) {
+        launchCatching {
+            if (!isEditAllowed.value) {
+                snackbarManager.showMessage("Cannot edit past records (Report Generated)")
+                return@launchCatching
+            }
+            if (count < 0) {
+                 snackbarManager.showMessage("Occupancy cannot be negative")
+                 return@launchCatching
+            }
+            val date = _uiState.value.selectedDate
+            vacancyRepository.updateOccupancy(apartmentId, date, count)
         }
     }
 }

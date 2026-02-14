@@ -6,6 +6,7 @@ import com.google.firebase.firestore.PropertyName
 data class ApartmentDocument(
     @DocumentId val id: String? = null, // Document ID will be the apartment number (e.g., "101")
     val number: String = "",
+    val defaultOccupancy: Int = 0,
     val ownerId: String = ""
 )
 
@@ -14,6 +15,14 @@ data class VacancyDocument(
     val apartmentId: String = "", // References Apartment Document ID (e.g., "101")
     val startDate: String = "",
     val endDate: String? = null,
+    val ownerId: String = ""
+)
+
+data class DailyOccupancyDocument(
+    @DocumentId val id: String? = null, // Document ID: "{aptNo}_{date}"
+    val apartmentId: String = "",
+    val date: String = "",
+    val occupancy: Int = 0,
     val ownerId: String = ""
 )
 

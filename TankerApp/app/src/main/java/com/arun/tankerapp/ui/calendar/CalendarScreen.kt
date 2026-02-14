@@ -60,13 +60,16 @@ fun CalendarScreen(
     val tankerCount by viewModel.tankerCount.collectAsState()
     val tankerDatesInMonth by viewModel.tankerDatesInMonth.collectAsState()
     val currentCycleTankerCount by viewModel.currentCycleTankerCount.collectAsState()
+    val isEditAllowed by viewModel.isEditAllowed.collectAsState()
 
     if (uiState.showBottomSheet) {
         VacancyEntryBottomSheet(
             date = uiState.selectedDate,
             apartmentStatuses = apartmentStatuses,
             tankerCount = tankerCount,
+            isEditAllowed = isEditAllowed,
             onToggleVacancy = viewModel::onToggleVacancy,
+            onOccupancyChange = viewModel::onOccupancyChanged,
             onIncrementTanker = viewModel::onIncrementTanker,
             onDecrementTanker = viewModel::onDecrementTanker,
             onDismiss = viewModel::onDismissBottomSheet
