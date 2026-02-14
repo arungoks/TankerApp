@@ -44,22 +44,44 @@ class ReportGenerator @Inject constructor(
         val file = File(context.cacheDir, "reports/Billing_Report.csv")
         file.parentFile?.mkdirs()
         
+        // Collect dates where tankers were booked (and billed)
+        // Union of all dates in dailyBreakdown
+        val dates = bills.flatMap { it.dailyBreakdown.keys }.distinct().sorted()
+
         file.printWriter().use { out ->
             // Header
             out.println("Billing Report")
             out.println("From Date,${fromDate}")
             out.println("To Date,${toDate}")
             out.println("")
-            out.println("Apartment Number,Billable Tankers,Total Tankers In Cycle")
             
-            // Data
+            // Column Headers
+            // Apartment, Total Billable, [Date 1], [Date 2]...
+            val dateHeaders = dates.joinToString(",") { it.toString() }
+            out.println("Apartment Number,Total Billable ($totalTankers Cycle),${dateHeaders}")
+            
+            // Data Rows
             bills.forEach { bill ->
-                out.println("${bill.apartment.number},${bill.billableTankers},${bill.totalTankersInCycle}")
+                val sb = StringBuilder()
+                sb.append(bill.apartment.number).append(",")
+                sb.append(bill.billableTankers).append(",")
+                
+                // Date Columns
+                val dateValues = dates.joinToString(",") { date ->
+                    (bill.dailyBreakdown[date] ?: 0).toString()
+                }
+                sb.append(dateValues)
+                
+                out.println(sb.toString())
             }
             
-            // Footer
-            out.println(",,")
-            out.println("Total Cycle Tankers,,$totalTankers")
+            // Footer: Daily Totals
+            out.println("")
+            out.print("Daily Totals,,")
+            val dailyTotals = dates.map { date ->
+                bills.sumOf { it.dailyBreakdown[date] ?: 0 }
+            }
+            out.println(dailyTotals.joinToString(","))
         }
         
         return file

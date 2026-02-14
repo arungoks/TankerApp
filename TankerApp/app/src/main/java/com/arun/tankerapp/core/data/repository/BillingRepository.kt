@@ -18,7 +18,8 @@ import javax.inject.Singleton
 data class ApartmentBill(
     val apartment: Apartment,
     val billableTankers: Int,
-    val totalTankersInCycle: Int
+    val totalTankersInCycle: Int,
+    val dailyBreakdown: Map<LocalDate, Int> = emptyMap()
 )
 
 @Singleton
@@ -88,16 +89,12 @@ class BillingRepository @Inject constructor(
             val totalTankers = validTankers.sumOf { it.count }
 
             // 2. Pre-process vacancies for faster lookup
-            // VacancyLog uses apartmentId: Long (hashed). 
-            // Apartment uses id: Long (hashed).
-            // But we should match via NUMBER if IDs are inconsistent.
-            // My repos convert both to Hash ID. So matching ID is safer?
-            // Actually, matching ID is fine as long as hash is stable.
             val vacancyMap = vacancies.groupBy { it.apartmentId }
 
             // 3. Calculate bill for each apartment
             apartments.map { apartment ->
                 val aptVacancies = vacancyMap[apartment.id] ?: emptyList()
+                val dailyBreakdown = mutableMapOf<LocalDate, Int>()
                 var billableCount = 0
 
                 validTankers.forEach { tanker ->
@@ -112,6 +109,7 @@ class BillingRepository @Inject constructor(
                     }
 
                     if (!isVacant) {
+                        dailyBreakdown[tankerDate] = (dailyBreakdown[tankerDate] ?: 0) + tanker.count
                         billableCount += tanker.count
                     }
                 }
@@ -119,7 +117,8 @@ class BillingRepository @Inject constructor(
                 ApartmentBill(
                     apartment = apartment,
                     billableTankers = billableCount,
-                    totalTankersInCycle = totalTankers
+                    totalTankersInCycle = totalTankers,
+                    dailyBreakdown = dailyBreakdown
                 )
             }.sortedBy { it.apartment.id } // Or sort by number logic
         }
