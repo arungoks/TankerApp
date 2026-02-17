@@ -51,7 +51,23 @@ class ReportGenerator @Inject constructor(
 
         // Pre-calculate per-head costs for each date
         val dailyCosts = mutableMapOf<java.time.LocalDate, Double>()
-        val TANKER_COST = 4500.0
+        val properties = java.util.Properties()
+        var tankerCostConfig = 4843.0
+        try {
+            context.assets.open("config.properties").use { inputStream ->
+                properties.load(inputStream)
+                // Use a generic default or the new value if property is missing, though we expect it to be there.
+                // If we want the code to purely rely on config, we might not need to update this, 
+                // but for consistency with the "current" price, let's update the fallback.
+                val costProp = properties.getProperty("tanker_cost")
+                if (costProp != null) {
+                     tankerCostConfig = costProp.toDouble()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        val TANKER_COST = tankerCostConfig
 
         dates.forEach { date ->
             // Total Tankers on this date (Max of any apartment's record for this date as it represents the global count)
@@ -117,7 +133,15 @@ class ReportGenerator @Inject constructor(
                 // Discount Amount
                 sb.append("0").append(",")
                 // Additional Description (Total Tankers in Cycle)
-                sb.append(totalTankers).append(",") // Or bill.totalTankersInCycle ? User said "total number of tankers in that cycle", implies global total.
+                val additionalDesc = dates.filter { date ->
+                    (bill.dailyOccupancyBreakdown[date] ?: 0) > 0
+                }.joinToString("\n") { date ->
+                    val occ = bill.dailyOccupancyBreakdown[date] ?: 0
+                    val rate = dailyCosts[date] ?: 0.0
+                    val rateStr = String.format(java.util.Locale.US, "%.2f", rate)
+                    "$date::$occ People::Cost per head Rs.$rateStr"
+                }
+                sb.append("\"").append(additionalDesc).append("\",")
                 // Discount Description
                 sb.append("") // Blank
                 
