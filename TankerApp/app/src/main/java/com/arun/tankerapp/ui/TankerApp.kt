@@ -11,6 +11,7 @@ import com.arun.tankerapp.ui.splash.SplashScreen
 
 import com.arun.tankerapp.ui.report.ReportPreviewScreen
 
+import com.arun.tankerapp.ui.login.LoginScreen
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -51,8 +52,23 @@ fun TankerApp(
             composable(Screen.Splash.route) {
                 SplashScreen(
                     onSplashComplete = {
+                        val startDestination = if (viewModel.isUserLoggedIn()) {
+                            Screen.Home.route
+                        } else {
+                            Screen.Login.route
+                        }
+                        navController.navigate(startDestination) {
+                             popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    onLoginSuccess = {
                         navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Splash.route) { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     }
                 )

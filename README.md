@@ -1,4 +1,4 @@
-# TankerApp
+# TankerApp (v3.1)
 
 **TankerApp** is a native Android application designed to streamline water tanker tracking and billing for apartment complexes. It replaces error-prone paper records with a simple, digital tool that helps caretakers track usage, manage vacancies, and generate fair, occupancy-based billing reports.
 
@@ -6,11 +6,12 @@
 
 *   **Calendar Interface**: Intuitive, calendar-based logging for tanker deliveries and apartment vacancies.
 *   **Smart Tracking**: Automatically counts tanker deliveries (e.g., 0/8) and notifies the user when a billing cycle is complete.
-*   **Vacancy Management**: Easily mark apartments as vacant for specific date ranges to exclude them from billing.
-*   **Automated Billing**: Generates instant, accurate billing reports based on occupancy and usage.
-*   **Report Generation**: Export billing reports as **PDF** or **CSV** to share via WhatsApp or other apps.
+*   **Vacancy & Occupancy Management**: Easily mark apartments as vacant or update occupancy counts for specific dates.
+*   **Configurable Pricing**: Tanker costs are configurable via `assets/config.properties`, allowing easy updates without code changes.
+*   **Automated Billing**: Generates instant, accurate billing reports based on daily occupancy and per-head costs.
+*   **Detailed Reporting**: Export billing reports as **CSV** with a detailed day-wise breakdown of occupancy and costs per apartment.
 *   **History View**: Access a log of past billing cycles and reports.
-*   **Offline-First**: All data is stored locally on the device, requiring no internet connection or account setup.
+*   **Offline-First**: All data is stored locally on the device.
 
 ## 🛠️ Technology Stack
 

@@ -36,7 +36,9 @@ fun VacancyEntryBottomSheet(
     date: LocalDate,
     apartmentStatuses: List<ApartmentStatus>,
     tankerCount: Int,
+    isEditAllowed: Boolean = true,
     onToggleVacancy: (Long, Boolean) -> Unit,
+    onOccupancyChange: (Long, Int) -> Unit,
     onIncrementTanker: () -> Unit,
     onDecrementTanker: () -> Unit,
     onDismiss: () -> Unit,
@@ -54,8 +56,19 @@ fun VacancyEntryBottomSheet(
             Text(
                 text = "Log Entry for ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+            
+            if (!isEditAllowed) {
+                Text(
+                    text = "Editing is disabled for past reports.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            } else {
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(bottom = 16.dp))
+            }
 
             // Tanker Counter with +/- buttons
             Row(
@@ -79,7 +92,7 @@ fun VacancyEntryBottomSheet(
                     // Decrement button
                     Button(
                         onClick = onDecrementTanker,
-                        enabled = tankerCount > 0,
+                        enabled = isEditAllowed && tankerCount > 0,
                         modifier = Modifier.size(48.dp),
                         contentPadding = PaddingValues(0.dp)
                     ) {
@@ -100,6 +113,7 @@ fun VacancyEntryBottomSheet(
                     // Increment button
                     Button(
                         onClick = onIncrementTanker,
+                        enabled = isEditAllowed,
                         modifier = Modifier.size(48.dp),
                         contentPadding = PaddingValues(0.dp)
                     ) {
@@ -112,9 +126,8 @@ fun VacancyEntryBottomSheet(
             }
             
             // Divider or Spacer
-            // Just padding for now
             Text(
-                text = "Apartment Vacancies",
+                text = "Apartment Vacancies & Occupancy",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
             )
@@ -126,8 +139,12 @@ fun VacancyEntryBottomSheet(
                 ) { status ->
                     ApartmentItem(
                         status = status,
+                        isEnabled = isEditAllowed,
                         onToggle = { isChecked ->
                             onToggleVacancy(status.apartment.id, isChecked)
+                        },
+                        onOccupancyChange = { newCount ->
+                            onOccupancyChange(status.apartment.id, newCount)
                         }
                     )
                 }
@@ -139,23 +156,84 @@ fun VacancyEntryBottomSheet(
 @Composable
 fun ApartmentItem(
     status: ApartmentStatus,
-    onToggle: (Boolean) -> Unit
+    isEnabled: Boolean = true,
+    onToggle: (Boolean) -> Unit,
+    onOccupancyChange: (Int) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle(!status.isVacant) }
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Apartment ${status.apartment.number}",
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Apt ${status.apartment.number}",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Occupancy Controls
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(end = 8.dp)
+        ) {
+             Button(
+                 onClick = { onOccupancyChange(status.occupancy - 1) },
+                 enabled = isEnabled && !status.isVacant && status.occupancy > 0,
+                 modifier = Modifier.size(32.dp),
+                 shape = androidx.compose.foundation.shape.CircleShape,
+                 contentPadding = PaddingValues(0.dp)
+             ) {
+                 Text("-", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+             }
+             
+             androidx.compose.foundation.text.BasicTextField(
+                 value = status.occupancy.toString(),
+                 onValueChange = { 
+                     if (isEnabled && !status.isVacant) {
+                         val newVal = it.toIntOrNull()
+                         if (newVal != null && newVal >= 0) {
+                             onOccupancyChange(newVal)
+                         } else if (it.isEmpty()) {
+                             onOccupancyChange(0)
+                         }
+                     }
+                 },
+                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                 modifier = Modifier
+                     .size(width = 40.dp, height = 32.dp)
+                     .background(
+                         if (!isEnabled || status.isVacant) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface, 
+                         MaterialTheme.shapes.small
+                     )
+                     .padding(top = 6.dp), // Center text vertically
+                 enabled = isEnabled && !status.isVacant,
+                 textStyle = androidx.compose.ui.text.TextStyle(
+                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                     fontWeight = FontWeight.Bold,
+                     color = if (!isEnabled || status.isVacant) androidx.compose.ui.graphics.Color.Gray else MaterialTheme.colorScheme.onSurface 
+                 )
+             )
+             
+             Button(
+                 onClick = { onOccupancyChange(status.occupancy + 1) },
+                 enabled = isEnabled && !status.isVacant,
+                 modifier = Modifier.size(32.dp),
+                 shape = androidx.compose.foundation.shape.CircleShape,
+                 contentPadding = PaddingValues(0.dp)
+             ) {
+                 Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+             }
+        }
+
         Checkbox(
             checked = status.isVacant,
-            onCheckedChange = onToggle
+            onCheckedChange = onToggle,
+            enabled = isEnabled
         )
     }
 }

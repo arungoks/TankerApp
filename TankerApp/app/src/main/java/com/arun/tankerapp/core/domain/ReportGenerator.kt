@@ -41,25 +41,145 @@ class ReportGenerator @Inject constructor(
         fromDate: java.time.LocalDate, 
         toDate: java.time.LocalDate
     ): File {
-        val file = File(context.cacheDir, "reports/Billing_Report.csv")
+        val generationDate = java.time.LocalDate.now()
+        val file = File(context.cacheDir, "reports/Tanker_Bill_$generationDate.csv")
         file.parentFile?.mkdirs()
         
+        // Collect dates where tankers were booked (and billed)
+        // Union of all dates in dailyBreakdown
+        val dates = bills.flatMap { it.dailyBreakdown.keys }.distinct().sorted()
+
+        // Pre-calculate per-head costs for each date
+        val dailyCosts = mutableMapOf<java.time.LocalDate, Double>()
+        val properties = java.util.Properties()
+        var tankerCostConfig = 4843.0
+        try {
+            context.assets.open("config.properties").use { inputStream ->
+                properties.load(inputStream)
+                // Use a generic default or the new value if property is missing, though we expect it to be there.
+                // If we want the code to purely rely on config, we might not need to update this, 
+                // but for consistency with the "current" price, let's update the fallback.
+                val costProp = properties.getProperty("tanker_cost")
+                if (costProp != null) {
+                     tankerCostConfig = costProp.toDouble()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        val TANKER_COST = tankerCostConfig
+
+        dates.forEach { date ->
+            // Total Tankers on this date (Max of any apartment's record for this date as it represents the global count)
+            // Use maxOfOrNull because dailyBreakdown stores the global count for occupied apartments.
+            // If all are 0/null, then 0 tankers.
+            val totalTankersOnDate = bills.maxOfOrNull { it.dailyBreakdown[date] ?: 0 } ?: 0
+            
+            // Total Occupants on this date (Sum of all apartments)
+            val totalOccupantsOnDate = bills.sumOf { it.dailyOccupancyBreakdown[date] ?: 0 }
+
+            if (totalTankersOnDate > 0 && totalOccupantsOnDate > 0) {
+                val dailyTotalCost = totalTankersOnDate * TANKER_COST
+                val perHeadCost = dailyTotalCost / totalOccupantsOnDate
+                dailyCosts[date] = perHeadCost
+            } else {
+                dailyCosts[date] = 0.0
+            }
+        }
+
         file.printWriter().use { out ->
             // Header
             out.println("Billing Report")
             out.println("From Date,${fromDate}")
             out.println("To Date,${toDate}")
             out.println("")
-            out.println("Apartment Number,Billable Tankers,Total Tankers In Cycle")
             
-            // Data
+            // Column Headers
+            // Apartment, Total Billable, [Date 1, Occ, Cost], [Date 2, Occ, Cost]... [Item Amount], [Discount Amount], ...
+            val dateHeaders = dates.joinToString(",") { date ->
+                "$date,${date} Occupancy,tanker cost-$date"
+            }
+            out.println("Unit Name,Total Billable ($totalTankers Cycle),${dateHeaders},Item Amount,Discount Amount,Additional Description (optional),Discount Description (optional)")
+            
+            // Data Rows
             bills.forEach { bill ->
-                out.println("${bill.apartment.number},${bill.billableTankers},${bill.totalTankersInCycle}")
+                val sb = StringBuilder()
+                sb.append("Phase 2-${bill.apartment.number}").append(",")
+                sb.append(bill.billableTankers).append(",")
+                
+                var totalItemAmount = 0.0
+
+                // Date Columns (Billable, Occupancy, Cost)
+                val dateValues = dates.joinToString(",") { date ->
+                    val billing = (bill.dailyBreakdown[date] ?: 0).toString()
+                    val occupancyCount = bill.dailyOccupancyBreakdown[date] ?: 0
+                    val occupancy = occupancyCount.toString()
+                    
+                    val perHead = dailyCosts[date] ?: 0.0
+                    val cost = occupancyCount * perHead
+                    totalItemAmount += cost
+
+                    // Format cost to 2 decimal places? User didn't specify, but money usually 2 decimals.
+                    // Using String.format for safety.
+                    val costStr = String.format(java.util.Locale.US, "%.2f", cost)
+
+                    "$billing,$occupancy,$costStr"
+                }
+                sb.append(dateValues).append(",")
+                
+                // Summary Columns
+                // Item Amount
+                sb.append(String.format(java.util.Locale.US, "%.2f", totalItemAmount)).append(",")
+                // Discount Amount
+                sb.append("0").append(",")
+                // Additional Description (Total Tankers in Cycle)
+                val additionalDesc = dates.filter { date ->
+                    (bill.dailyOccupancyBreakdown[date] ?: 0) > 0
+                }.joinToString("\n") { date ->
+                    val occ = bill.dailyOccupancyBreakdown[date] ?: 0
+                    val rate = dailyCosts[date] ?: 0.0
+                    val rateStr = String.format(java.util.Locale.US, "%.2f", rate)
+                    "$date::$occ People::Cost per head Rs.$rateStr"
+                }
+                sb.append("\"").append(additionalDesc).append("\",")
+                // Discount Description
+                sb.append("") // Blank
+                
+                out.println(sb.toString())
             }
             
-            // Footer
-            out.println(",,")
-            out.println("Total Cycle Tankers,,$totalTankers")
+            // Footer: Daily Totals
+            // Note: Footer columns need to align with headers. 
+            // Header structure: Apt, Total, [Date, Occ, Cost]... [Summary...]
+            // It might be cleaner to leave summary columns empty in footer or sum them?
+            // Existing logic had "Daily Totals" printed.
+            out.println("")
+            out.print("Daily Totals,,")
+            val dailyTotals = dates.map { date ->
+                val tSum = bills.sumOf { it.dailyBreakdown[date] ?: 0 } // This sum is actually misleading if dailyBreakdown is global count? 
+                // Wait! dailyBreakdown in BillingRepository returns "Total Tankers if Occupied".
+                // So summing these columns in the report (Column 1 of Date) would sum (Total Tankers * Num Occupied Apartments). 
+                // That is NOT "Daily Total Tankers".
+                // However, the previous code did: val tSum = bills.sumOf { it.dailyBreakdown[date] ?: 0 }
+                // If the user wants "number of tankers" column to show the *global* tankers on that day, it works (it shows the same number for everyone).
+                // But the SUM at the bottom would be huge. 
+                // Maybe the footer should show the Global Total for that day?
+                // I will use my derived 'totalTankersOnDate' for the footer for the first column.
+                // Output: Tankers, Occupancy, Cost(Sum?)
+                
+                val totalTankersDate = bills.maxOfOrNull { it.dailyBreakdown[date] ?: 0 } ?: 0
+                val totalOccupancyDate = bills.sumOf { it.dailyOccupancyBreakdown[date] ?: 0 }
+                val totalCostDate = totalOccupancyDate * (dailyCosts[date] ?: 0.0) // Should match sum of costs
+                
+                // Format
+                val costStr = String.format(java.util.Locale.US, "%.2f", totalCostDate)
+                "$totalTankersDate,$totalOccupancyDate,$costStr"
+            }
+            out.print(dailyTotals.joinToString(","))
+            
+            // Footer for Summary Columns?
+            // We have 4 columns at end. Just leave blank for now to avoid misalignment or complexity.
+            out.println(",,,,") 
         }
         
         return file

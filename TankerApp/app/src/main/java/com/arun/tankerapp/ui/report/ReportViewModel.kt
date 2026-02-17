@@ -148,8 +148,9 @@ class ReportViewModel @Inject constructor(
                     totalTankers = currentState.totalTankers
                 )
                 
-                // Reset to start new cycle from today
-                userPreferencesRepository.setLastReportDate(currentDate)
+                // Reset to start new cycle from TOMORROW (Today is locked)
+                val nextCycleStart = currentDate.plusDays(1)
+                userPreferencesRepository.setLastReportDate(nextCycleStart)
                 _shareEvent.emit(ShareEvent.CycleReset)
             }
         }

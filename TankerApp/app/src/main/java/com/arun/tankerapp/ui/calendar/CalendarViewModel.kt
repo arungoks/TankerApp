@@ -24,12 +24,15 @@ import kotlinx.coroutines.launch
 
 import com.arun.tankerapp.ui.base.BaseViewModel
 import com.arun.tankerapp.core.ui.SnackbarManager
+import com.arun.tankerapp.core.data.repository.UserPreferencesRepository
+import kotlinx.coroutines.flow.firstOrNull
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val vacancyRepository: VacancyRepository,
     private val tankerRepository: TankerRepository,
-    snackbarManager: SnackbarManager
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val snackbarManager: SnackbarManager
 ) : BaseViewModel(snackbarManager) {
 
     private val _uiState = MutableStateFlow(CalendarUiState())
@@ -64,8 +67,23 @@ class CalendarViewModel @Inject constructor(
                 
                 logs.flatMap { log ->
                     // Parse dates
-                    val start = LocalDate.parse(log.startDate)
-                    val end = LocalDate.parse(log.endDate)
+                    // Parse dates safely
+                    val start = try {
+                        if (log.startDate.isBlank()) return@flatMap emptyList()
+                        LocalDate.parse(log.startDate)
+                    } catch (e: Exception) {
+                        return@flatMap emptyList()
+                    }
+
+                    val end = if (log.endDate.isBlank()) {
+                        monthEnd // Treat open-ended vacancy as extending to end of month
+                    } else {
+                        try {
+                            LocalDate.parse(log.endDate)
+                        } catch (e: Exception) {
+                            monthEnd
+                        }
+                    }
                     
                     // Clamp to current month view
                     val clampedStart = if (start.isBefore(monthStart)) monthStart else start
@@ -93,7 +111,11 @@ class CalendarViewModel @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { month ->
             tankerRepository.getTankersForMonth(month).map { logs ->
-                logs.filter { it.count > 0 }.map { LocalDate.parse(it.date) }.toSet()
+                logs.filter { it.count > 0 && it.date.isNotBlank() }
+                    .mapNotNull { 
+                        try { LocalDate.parse(it.date) } catch (e: Exception) { null }
+                    }
+                    .toSet()
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
@@ -142,8 +164,20 @@ class CalendarViewModel @Inject constructor(
         _uiState.update { it.copy(showBottomSheet = false) }
     }
 
+    val isEditAllowed: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(
+        _uiState.map { it.selectedDate }.distinctUntilChanged(),
+        userPreferencesRepository.getLastReportDate()
+    ) { date, lastReportDate ->
+        val limit = lastReportDate ?: LocalDate.MIN
+        !date.isBefore(limit)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun onToggleVacancy(apartmentId: Long, isVacant: Boolean) {
         launchCatching {
+            if (!isEditAllowed.value) {
+                snackbarManager.showMessage("Cannot edit past records (Report Generated)")
+                return@launchCatching
+            }
             val date = _uiState.value.selectedDate
             vacancyRepository.toggleVacancy(apartmentId, date, isVacant)
         }
@@ -151,6 +185,10 @@ class CalendarViewModel @Inject constructor(
 
     fun onIncrementTanker() {
         launchCatching {
+            if (!isEditAllowed.value) {
+                snackbarManager.showMessage("Cannot edit past records (Report Generated)")
+                return@launchCatching
+            }
             val date = _uiState.value.selectedDate
             tankerRepository.incrementTankerCount(date)
         }
@@ -158,8 +196,27 @@ class CalendarViewModel @Inject constructor(
 
     fun onDecrementTanker() {
         launchCatching {
+            if (!isEditAllowed.value) {
+                snackbarManager.showMessage("Cannot edit past records (Report Generated)")
+                return@launchCatching
+            }
             val date = _uiState.value.selectedDate
             tankerRepository.decrementTankerCount(date)
+        }
+    }
+
+    fun onOccupancyChanged(apartmentId: Long, count: Int) {
+        launchCatching {
+            if (!isEditAllowed.value) {
+                snackbarManager.showMessage("Cannot edit past records (Report Generated)")
+                return@launchCatching
+            }
+            if (count < 0) {
+                 snackbarManager.showMessage("Occupancy cannot be negative")
+                 return@launchCatching
+            }
+            val date = _uiState.value.selectedDate
+            vacancyRepository.updateOccupancy(apartmentId, date, count)
         }
     }
 }
