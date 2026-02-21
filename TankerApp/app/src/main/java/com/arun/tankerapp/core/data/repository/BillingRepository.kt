@@ -71,6 +71,27 @@ class BillingRepository @Inject constructor(
     }
 
     /**
+     * Returns the endDate of the latest billing cycle from Firebase.
+     * This is the source of truth for determining when the current cycle starts.
+     * Tankers AFTER this date belong to the current cycle.
+     */
+    fun getLatestCycleEndDate(): Flow<LocalDate?> = callbackFlow {
+        val registration = billingCyclesCollection
+            .orderBy("endDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(1)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) { close(e); return@addSnapshotListener }
+                
+                val latestEndDate = snapshot?.documents?.firstOrNull()
+                    ?.toObject(BillingCycleDocument::class.java)
+                    ?.endDate
+                    ?.let { try { LocalDate.parse(it) } catch (ex: Exception) { null } }
+                trySend(latestEndDate)
+            }
+        awaitClose { registration.remove() }
+    }
+
+    /**
      * Generates a billing report for a given period.
      */
     fun getBillingReport(fromDate: LocalDate? = null, toDate: LocalDate? = null): Flow<List<ApartmentBill>> {

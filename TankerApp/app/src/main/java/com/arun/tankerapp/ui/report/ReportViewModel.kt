@@ -69,9 +69,9 @@ class ReportViewModel @Inject constructor(
             )
         }
     } else {
-        userPreferencesRepository.getLastReportDate()
-            .flatMapLatest { lastDate ->
-                billingRepository.getBillingReport(fromDate = lastDate).map { bills ->
+        billingRepository.getLatestCycleEndDate()
+            .flatMapLatest { lastEndDate ->
+                billingRepository.getBillingReport(fromDate = lastEndDate).map { bills ->
                     val total = bills.firstOrNull()?.totalTankersInCycle ?: 0
                     ReportUiState(
                         bills = bills,
@@ -108,21 +108,19 @@ class ReportViewModel @Inject constructor(
         val state = uiState.value
         if (!state.isLoading) {
             launchCatching {
-                // Get Last Report Date (From Date)
-                val lastReportDate = userPreferencesRepository.getLastReportDate().firstOrNull() 
-                    ?: LocalDate.now().withDayOfMonth(1) // Default to 1st of current month if null
+                // Get the latest cycle endDate from Firebase as From Date
+                val lastCycleEndDate = billingRepository.getLatestCycleEndDate().firstOrNull()
+                val fromDate = lastCycleEndDate?.plusDays(1) 
+                    ?: LocalDate.now().withDayOfMonth(1) // Default to 1st of current month if no cycle exists
                 
                 val currentDate = LocalDate.now() // To Date
                 
                 val file = reportGenerator.generateCsvReport(
                     bills = state.bills, 
                     totalTankers = state.totalTankers,
-                    fromDate = lastReportDate,
+                    fromDate = fromDate,
                     toDate = currentDate
                 )
-                
-                // TODO: Update Last Report Date *after* successful share/cycle reset? 
-                // For now, per requirement, just using it. Preserving/Updating might belong to 'Reset' action.
                 
                 val uri = reportGenerator.getUriForFile(file)
                 _shareEvent.emit(ShareEvent.ShareCsv(uri))
@@ -134,8 +132,9 @@ class ReportViewModel @Inject constructor(
         launchCatching {
             val currentState = uiState.value
             if (!currentState.isLoading) {
-                // Get Last Report Date (Start of Current Cycle)
-                val lastReportDate = userPreferencesRepository.getLastReportDate().firstOrNull() 
+                // Get the latest cycle endDate from Firebase to determine start of current cycle
+                val lastCycleEndDate = billingRepository.getLatestCycleEndDate().firstOrNull()
+                val cycleStartDate = lastCycleEndDate?.plusDays(1) 
                     ?: LocalDate.now().withDayOfMonth(1)
                 
                 // End of Current Cycle is Today
@@ -143,14 +142,13 @@ class ReportViewModel @Inject constructor(
                 
                 // Archive the cycle
                 billingRepository.archiveCurrentCycle(
-                    startDate = lastReportDate,
+                    startDate = cycleStartDate,
                     endDate = currentDate,
                     totalTankers = currentState.totalTankers
                 )
                 
-                // Reset to start new cycle from TOMORROW (Today is locked)
-                val nextCycleStart = currentDate.plusDays(1)
-                userPreferencesRepository.setLastReportDate(nextCycleStart)
+                // Also update local DataStore for backward compat
+                userPreferencesRepository.setLastReportDate(currentDate.plusDays(1))
                 _shareEvent.emit(ShareEvent.CycleReset)
             }
         }

@@ -150,11 +150,18 @@ class TankerRepository @Inject constructor(
      * For now, this includes all tankers in the database.
      * TODO: Filter by cycle status when report generation is implemented.
      */
-    fun getCurrentCycleTankerCount(): Flow<Int> = callbackFlow {
-        // Fetch ALL tankers
-        // Ideally: collection("tankers").whereEqualTo("billingCycleId", currentCycleId)
-        // Since we don't have cycles yet, fetch ALL.
-        val registration = tankersCollection.addSnapshotListener { snapshot, e ->
+    /**
+     * Returns the total tanker count for the current billing cycle.
+     * Filters tankers starting from the given startDate (inclusive).
+     */
+    fun getCurrentCycleTankerCount(startDate: LocalDate? = null): Flow<Int> = callbackFlow {
+        var query: com.google.firebase.firestore.Query = tankersCollection
+        
+        if (startDate != null) {
+            query = query.whereGreaterThan("date", startDate.toString())
+        }
+
+        val registration = query.addSnapshotListener { snapshot, e ->
             if (e != null) { close(e); return@addSnapshotListener }
             
             val total = snapshot?.documents?.sumOf { 

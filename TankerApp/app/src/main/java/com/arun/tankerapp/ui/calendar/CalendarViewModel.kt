@@ -25,12 +25,14 @@ import kotlinx.coroutines.launch
 import com.arun.tankerapp.ui.base.BaseViewModel
 import com.arun.tankerapp.core.ui.SnackbarManager
 import com.arun.tankerapp.core.data.repository.UserPreferencesRepository
+import com.arun.tankerapp.core.data.repository.BillingRepository
 import kotlinx.coroutines.flow.firstOrNull
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val vacancyRepository: VacancyRepository,
     private val tankerRepository: TankerRepository,
+    private val billingRepository: BillingRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val snackbarManager: SnackbarManager
 ) : BaseViewModel(snackbarManager) {
@@ -122,10 +124,15 @@ class CalendarViewModel @Inject constructor(
 
     /**
      * Total tanker count for the current billing cycle.
+     * Uses the endDate from the latest billing_cycles entry in Firebase as the boundary.
      * This is displayed in the sticky header as "X/8".
      */
-    val currentCycleTankerCount: StateFlow<Int> = tankerRepository
-        .getCurrentCycleTankerCount()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentCycleTankerCount: StateFlow<Int> = billingRepository.getLatestCycleEndDate()
+        .distinctUntilChanged()
+        .flatMapLatest { endDate ->
+            tankerRepository.getCurrentCycleTankerCount(endDate)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun onPreviousMonth() {
@@ -164,12 +171,13 @@ class CalendarViewModel @Inject constructor(
         _uiState.update { it.copy(showBottomSheet = false) }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val isEditAllowed: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(
         _uiState.map { it.selectedDate }.distinctUntilChanged(),
-        userPreferencesRepository.getLastReportDate()
-    ) { date, lastReportDate ->
-        val limit = lastReportDate ?: LocalDate.MIN
-        !date.isBefore(limit)
+        billingRepository.getLatestCycleEndDate()
+    ) { date, lastEndDate ->
+        val limit = lastEndDate ?: LocalDate.MIN
+        date.isAfter(limit) // Can only edit dates AFTER the last cycle's endDate
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun onToggleVacancy(apartmentId: Long, isVacant: Boolean) {
