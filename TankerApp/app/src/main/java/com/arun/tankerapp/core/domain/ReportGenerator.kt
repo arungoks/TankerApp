@@ -133,14 +133,14 @@ class ReportGenerator @Inject constructor(
                 // Discount Amount
                 sb.append("0").append(",")
                 // Additional Description (Total Tankers in Cycle)
-                // Format: <Date>::<Occupancy Count>::Rs<Cost>
+                // Format: <Date>:<Occupancy Count>:<Cost>
                 val additionalDesc = dates.filter { date ->
                     (bill.dailyOccupancyBreakdown[date] ?: 0) > 0
-                }.joinToString(" || ") { date ->
+                }.joinToString("|") { date ->
                     val occ = bill.dailyOccupancyBreakdown[date] ?: 0
                     val rate = dailyCosts[date] ?: 0.0
-                    val rateStr = String.format(java.util.Locale.US, "%.0f", rate) // Remove decimals to save space if needed, or %.2f
-                    "$date::$occ::Rs$rateStr"
+                    val rateStr = String.format(java.util.Locale.US, "%.0f", rate)
+                    "$date:$occ:$rateStr"
                 }
                 sb.append("\"").append(additionalDesc).append("\",")
                 // Discount Description
