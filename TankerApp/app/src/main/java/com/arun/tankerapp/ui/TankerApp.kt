@@ -11,6 +11,9 @@ import com.arun.tankerapp.ui.splash.SplashScreen
 
 import com.arun.tankerapp.ui.report.ReportPreviewScreen
 
+import com.arun.tankerapp.ui.admin.AdminPinScreen
+import com.arun.tankerapp.ui.admin.AdminViewScreen
+import com.arun.tankerapp.ui.admin.ModifyApartmentScreen
 import com.arun.tankerapp.ui.login.LoginScreen
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
@@ -84,12 +87,47 @@ fun TankerApp(
                     },
                     onNavigateToHistory = {
                         navController.navigate(Screen.History.route)
+                    },
+                    onNavigateToAdmin = {
+                        navController.navigate(Screen.AdminPin.route)
                     }
                 )
             }
             
             composable(Screen.About.route) {
                 AboutScreen()
+            }
+
+            composable(Screen.AdminPin.route) {
+                AdminPinScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onLoginSuccess = {
+                        navController.navigate(Screen.AdminView.route) {
+                            popUpTo(Screen.AdminPin.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            
+            composable(Screen.AdminView.route) {
+                AdminViewScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToModifyApartment = {
+                        navController.navigate(Screen.ModifyApartment.route)
+                    }
+                )
+            }
+            
+            composable(Screen.ModifyApartment.route) {
+                ModifyApartmentScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(

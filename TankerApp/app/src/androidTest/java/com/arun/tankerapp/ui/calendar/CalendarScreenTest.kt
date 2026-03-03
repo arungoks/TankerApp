@@ -67,4 +67,15 @@ class CalendarScreenTest {
         // Verify New Month Name
         composeTestRule.onNodeWithText(nextMonthName).assertIsDisplayed()
     }
+    @Test
+    fun calendar_displays_admin_button() {
+        val currentMonthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        // Wait for Splash
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText(currentMonthName).fetchSemanticsNodes().isNotEmpty()
+        }
+        
+        // Admin button should be visible in the TopAppBar
+        composeTestRule.onNodeWithContentDescription("Admin").assertIsDisplayed()
+    }
 }

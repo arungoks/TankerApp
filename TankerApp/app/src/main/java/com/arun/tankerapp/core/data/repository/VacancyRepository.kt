@@ -33,4 +33,8 @@ interface VacancyRepository {
     // Exposed for Billing
     fun getApartmentDocuments(): Flow<List<com.arun.tankerapp.core.data.model.firestore.ApartmentDocument>>
     fun getAllDailyOccupancies(): Flow<List<com.arun.tankerapp.core.data.model.firestore.DailyOccupancyDocument>>
+    
+    // Admin Operations
+    suspend fun getApartmentOccupancy(apartmentNumber: String): Result<Int>
+    suspend fun updateDefaultOccupancy(apartmentNumber: String, newCount: Int): Result<Unit>
 }

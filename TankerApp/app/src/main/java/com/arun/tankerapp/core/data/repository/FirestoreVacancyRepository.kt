@@ -318,4 +318,29 @@ class FirestoreVacancyRepository @Inject constructor(
         
         batch.commit().await()
     }
+
+    override suspend fun getApartmentOccupancy(apartmentNumber: String): Result<Int> {
+        return try {
+            val doc = apartmentsCollection.document(apartmentNumber).get().await()
+            if (doc.exists()) {
+                val occupancy = doc.getLong("defaultOccupancy")?.toInt() ?: 0
+                Result.success(occupancy)
+            } else {
+                Result.failure(Exception("Apartment $apartmentNumber not found."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateDefaultOccupancy(apartmentNumber: String, newCount: Int): Result<Unit> {
+        return try {
+            apartmentsCollection.document(apartmentNumber)
+                .update("defaultOccupancy", newCount)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

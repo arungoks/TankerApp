@@ -15,4 +15,7 @@ sealed class Screen(val route: String) {
     }
     object Login : Screen("login")
     object History : Screen("history")
+    object AdminPin : Screen("admin_pin")
+    object AdminView : Screen("admin_view")
+    object ModifyApartment : Screen("modify_apartment")
 }

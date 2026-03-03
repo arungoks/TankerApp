@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +53,7 @@ fun CalendarScreen(
     onNavigateToAbout: () -> Unit,
     onNavigateToReport: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToAdmin: () -> Unit,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -81,6 +83,9 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text("TankerApp") },
                 actions = {
+                    IconButton(onClick = onNavigateToAdmin) {
+                        Icon(Icons.Default.Settings, contentDescription = "Admin")
+                    }
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Default.History, contentDescription = "History")
                     }
