@@ -38,37 +38,41 @@ class FirestoreVacancyRepository @Inject constructor(
     init {
         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
             seedApartments()
-            seedDefaultOccupancy()
         }
     }
 
     private suspend fun seedApartments() {
         try {
             val snapshot = apartmentsCollection.limit(1).get().await()
+            // Only seed if the collection is completely empty (first install)
             if (snapshot.isEmpty) {
+                // Load default occupancy from CSV asset
+                val occupancyMap = loadOccupancyFromCsv()
+
                 val batch = firestore.batch()
                 MasterApartmentList.apartments.forEach { number ->
                     val docRef = apartmentsCollection.document(number)
                     val apartment = ApartmentDocument(
-                        id = number, 
-                        number = number, 
+                        id = number,
+                        number = number,
+                        defaultOccupancy = occupancyMap[number] ?: 0,
                         ownerId = "Global"
                     )
                     batch.set(docRef, apartment)
                 }
                 batch.commit().await()
             }
+            // If collection already has data, Firebase is the source of truth — do nothing.
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    override suspend fun seedDefaultOccupancy() {
-        try {
+    private fun loadOccupancyFromCsv(): Map<String, Int> {
+        return try {
             val inputStream = context.assets.open("apartment-occupancy.csv")
             val reader = java.io.BufferedReader(java.io.InputStreamReader(inputStream))
             reader.readLine() // Skip header
-            
             val occupancyMap = mutableMapOf<String, Int>()
             var line = reader.readLine()
             while (line != null) {
@@ -81,30 +85,16 @@ class FirestoreVacancyRepository @Inject constructor(
                 line = reader.readLine()
             }
             reader.close()
-
-            val snapshot = apartmentsCollection.get().await()
-            val docs = snapshot.documents
-            
-            val batch = firestore.batch()
-            var hasUpdates = false
-
-            occupancyMap.forEach { (aptNumber, defaultCount) ->
-                val doc = docs.find { it.id == aptNumber }
-                if (doc != null) {
-                    val currentDefault = doc.getLong("defaultOccupancy")?.toInt() ?: 0
-                    if (currentDefault == 0 && defaultCount > 0) {
-                         batch.update(doc.reference, "defaultOccupancy", defaultCount)
-                         hasUpdates = true
-                    }
-                }
-            }
-            
-            if (hasUpdates) {
-                batch.commit().await()
-            }
+            occupancyMap
         } catch (e: Exception) {
             e.printStackTrace()
+            emptyMap()
         }
+    }
+
+    override suspend fun seedDefaultOccupancy() {
+        // No-op: seeding now happens only on first install inside seedApartments().
+        // Firebase is the source of truth once data exists.
     }
 
     private val apartmentsFlow: Flow<List<Apartment>> = callbackFlow {

@@ -1,4 +1,4 @@
-# TankerApp (v3.1)
+# TankerApp (v3.4)
 
 **TankerApp** is a native Android application designed to streamline water tanker tracking and billing for apartment complexes. It replaces error-prone paper records with a simple, digital tool that helps caretakers track usage, manage vacancies, and generate fair, occupancy-based billing reports.
 
@@ -11,7 +11,8 @@
 *   **Automated Billing**: Generates instant, accurate billing reports based on daily occupancy and per-head costs.
 *   **Detailed Reporting**: Export billing reports as **CSV** with a detailed day-wise breakdown of occupancy and costs per apartment.
 *   **History View**: Access a log of past billing cycles and reports.
-*   **Offline-First**: All data is stored locally on the device.
+*   **Cloud Sync**: All data is synced across devices using Firebase Firestore, with robust offline support.
+*   **Centralized Management**: Manage apartment lists and occupancy data in a shared cloud database.
 
 ## 🛠️ Technology Stack
 
@@ -21,6 +22,7 @@
 *   **Dependency Injection**: [Hilt](https://dagger.dev/hilt/)
 *   **Architecture**: MVVM (Model-View-ViewModel) with Unidirectional Data Flow (UDF)
 *   **Asynchrony**: Kotlin Coroutines & Flow
+*   **Backend / Cloud**: [Firebase](https://firebase.google.com/) (Firestore & Auth)
 
 ## 📂 Project Structure
 
