@@ -14,6 +14,7 @@ import com.arun.tankerapp.ui.report.ReportPreviewScreen
 import com.arun.tankerapp.ui.admin.AdminPinScreen
 import com.arun.tankerapp.ui.admin.AdminViewScreen
 import com.arun.tankerapp.ui.admin.ModifyApartmentScreen
+import com.arun.tankerapp.ui.admin.EditBillingCycleScreen
 import com.arun.tankerapp.ui.login.LoginScreen
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
@@ -118,12 +119,23 @@ fun TankerApp(
                     },
                     onNavigateToModifyApartment = {
                         navController.navigate(Screen.ModifyApartment.route)
+                    },
+                    onNavigateToEditBillingCycle = {
+                        navController.navigate(Screen.EditBillingCycle.route)
                     }
                 )
             }
             
             composable(Screen.ModifyApartment.route) {
                 ModifyApartmentScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(Screen.EditBillingCycle.route) {
+                EditBillingCycleScreen(
                     onNavigateBack = {
                         navController.popBackStack()
                     }

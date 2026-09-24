@@ -92,6 +92,29 @@ class BillingRepository @Inject constructor(
     }
 
     /**
+     * Returns the latest billing cycle document from Firebase.
+     */
+    fun getLatestBillingCycle(): Flow<BillingCycleDocument?> = callbackFlow {
+        val registration = billingCyclesCollection
+            .orderBy("endDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(1)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) { close(e); return@addSnapshotListener }
+                val doc = snapshot?.documents?.firstOrNull()
+                val latestCycle = doc?.toObject(BillingCycleDocument::class.java)?.copy(id = doc.id)
+                trySend(latestCycle)
+            }
+        awaitClose { registration.remove() }
+    }
+
+    /**
+     * Updates the endDate of an existing billing cycle document in Firebase.
+     */
+    suspend fun updateBillingCycleEndDate(docId: String, newEndDate: LocalDate) {
+        billingCyclesCollection.document(docId).update("endDate", newEndDate.toString()).await()
+    }
+
+    /**
      * Generates a billing report for a given period.
      */
     fun getBillingReport(fromDate: LocalDate? = null, toDate: LocalDate? = null): Flow<List<ApartmentBill>> {

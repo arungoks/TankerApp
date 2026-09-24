@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,13 +25,19 @@ data class AdminMenuItem(
 @Composable
 fun AdminViewScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToModifyApartment: () -> Unit
+    onNavigateToModifyApartment: () -> Unit,
+    onNavigateToEditBillingCycle: () -> Unit
 ) {
     val menuItems = listOf(
         AdminMenuItem(
             title = "Modify Apartment Data",
             icon = Icons.Default.Home,
             onClick = onNavigateToModifyApartment
+        ),
+        AdminMenuItem(
+            title = "Edit Last Billing Cycle",
+            icon = Icons.Default.DateRange,
+            onClick = onNavigateToEditBillingCycle
         )
     )
 

@@ -3,6 +3,7 @@ package com.arun.tankerapp.ui.calendar
 import com.arun.tankerapp.MainDispatcherRule
 import com.arun.tankerapp.core.data.database.entity.TankerLog
 import com.arun.tankerapp.core.data.database.entity.VacancyLog
+import com.arun.tankerapp.core.data.repository.BillingRepository
 import com.arun.tankerapp.core.data.repository.TankerRepository
 import com.arun.tankerapp.core.data.repository.VacancyRepository
 import com.arun.tankerapp.core.data.repository.UserPreferencesRepository
@@ -29,6 +30,7 @@ class CalendarViewModelTest {
     
     private val vacancyRepository: VacancyRepository = mock()
     private val tankerRepository: TankerRepository = mock()
+    private val billingRepository: BillingRepository = mock()
     private val userPreferencesRepository: UserPreferencesRepository = mock()
     private val snackbarManager: SnackbarManager = mock()
 
@@ -39,9 +41,10 @@ class CalendarViewModelTest {
         whenever(tankerRepository.getTankerCount(any())).thenReturn(flowOf(0))
         whenever(tankerRepository.getTankersForMonth(any())).thenReturn(flowOf(emptyList()))
         whenever(tankerRepository.getCurrentCycleTankerCount()).thenReturn(flowOf(0))
+        whenever(billingRepository.getLatestCycleEndDate()).thenReturn(flowOf(null))
         whenever(userPreferencesRepository.getLastReportDate()).thenReturn(flowOf(null))
         
-        viewModel = CalendarViewModel(vacancyRepository, tankerRepository, userPreferencesRepository, snackbarManager)
+        viewModel = CalendarViewModel(vacancyRepository, tankerRepository, billingRepository, userPreferencesRepository, snackbarManager)
     }
 
     @Test
@@ -81,7 +84,7 @@ class CalendarViewModelTest {
         whenever(userPreferencesRepository.getLastReportDate()).thenReturn(flowOf(null))
         
         // Create new viewModel with updated mock
-        viewModel = CalendarViewModel(vacancyRepository, tankerRepository, userPreferencesRepository, snackbarManager)
+        viewModel = CalendarViewModel(vacancyRepository, tankerRepository, billingRepository, userPreferencesRepository, snackbarManager)
         
         // Note: We can't easily assert Flow collection without collecting it here.
         // Assuming proper wiring.
