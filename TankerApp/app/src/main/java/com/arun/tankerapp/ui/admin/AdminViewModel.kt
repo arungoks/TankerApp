@@ -102,9 +102,10 @@ class AdminViewModel @Inject constructor(
 
     fun deleteLatestBillingCycle() {
         val cycle = _latestBillingCycle.value ?: return
+        val docId = cycle.id ?: return
         viewModelScope.launch {
             try {
-                billingRepository.deleteBillingCycle(cycle.id)
+                billingRepository.deleteBillingCycle(docId)
                 _snackbarMessage.emit("Billing cycle deleted successfully")
             } catch (e: Exception) {
                 _snackbarMessage.emit(e.localizedMessage ?: "Failed to delete billing cycle")
