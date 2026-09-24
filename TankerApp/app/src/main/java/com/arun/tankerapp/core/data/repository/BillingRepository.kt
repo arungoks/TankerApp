@@ -115,6 +115,13 @@ class BillingRepository @Inject constructor(
     }
 
     /**
+     * Deletes a billing cycle document from Firebase.
+     */
+    suspend fun deleteBillingCycle(docId: String) {
+        billingCyclesCollection.document(docId).delete().await()
+    }
+
+    /**
      * Generates a billing report for a given period.
      */
     fun getBillingReport(fromDate: LocalDate? = null, toDate: LocalDate? = null): Flow<List<ApartmentBill>> {

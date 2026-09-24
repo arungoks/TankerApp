@@ -8,7 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +29,22 @@ data class AdminMenuItem(
 fun AdminViewScreen(
     onNavigateBack: () -> Unit,
     onNavigateToModifyApartment: () -> Unit,
-    onNavigateToEditBillingCycle: () -> Unit
+    onNavigateToEditBillingCycle: () -> Unit,
+    viewModel: AdminViewModel = hiltViewModel()
 ) {
+    val latestCycle by viewModel.latestBillingCycle.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchLatestBillingCycle()
+        viewModel.snackbarMessage.collect { message ->
+            snackbarHostState.showSnackbar(message)
+            if (message.contains("successfully")) {
+                showDeleteDialog = false
+            }
+        }
+    }
     val menuItems = listOf(
         AdminMenuItem(
             title = "Modify Apartment Data",
@@ -38,6 +55,11 @@ fun AdminViewScreen(
             title = "Edit Last Billing Cycle",
             icon = Icons.Default.DateRange,
             onClick = onNavigateToEditBillingCycle
+        ),
+        AdminMenuItem(
+            title = "Delete Last Billing Cycle",
+            icon = Icons.Default.Delete,
+            onClick = { showDeleteDialog = true }
         )
     )
 
@@ -51,7 +73,8 @@ fun AdminViewScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -63,6 +86,52 @@ fun AdminViewScreen(
             items(menuItems) { item ->
                 AdminMenuCard(item = item)
             }
+        }
+    }
+
+    if (showDeleteDialog) {
+        if (latestCycle != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Billing Cycle") },
+                text = {
+                    Column {
+                        Text("Are you sure you want to delete this billing cycle? This action cannot be undone.")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Dates: ${latestCycle?.startDate} to ${latestCycle?.endDate}")
+                        Text("Total Tankers: ${latestCycle?.totalTankers}")
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.deleteLatestBillingCycle() },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Billing Cycle") },
+                text = { Text("No Billing Cycles Found.") },
+                confirmButton = {
+                    TextButton(onClick = {}, enabled = false) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

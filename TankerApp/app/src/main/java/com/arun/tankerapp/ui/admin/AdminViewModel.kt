@@ -2,6 +2,8 @@ package com.arun.tankerapp.ui.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.arun.tankerapp.core.data.model.firestore.BillingCycleDocument
+import com.arun.tankerapp.core.data.repository.BillingRepository
 import com.arun.tankerapp.core.data.repository.VacancyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,7 +26,8 @@ sealed interface AdminUiState {
 
 @HiltViewModel
 class AdminViewModel @Inject constructor(
-    private val vacancyRepository: VacancyRepository
+    private val vacancyRepository: VacancyRepository,
+    private val billingRepository: BillingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AdminUiState>(AdminUiState.Idle)
@@ -32,6 +35,9 @@ class AdminViewModel @Inject constructor(
 
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
+
+    private val _latestBillingCycle = MutableStateFlow<BillingCycleDocument?>(null)
+    val latestBillingCycle: StateFlow<BillingCycleDocument?> = _latestBillingCycle.asStateFlow()
 
     fun validatePin(pin: String): Boolean {
         return if (pin == AdminConstants.ADMIN_PIN) {
@@ -82,6 +88,26 @@ class AdminViewModel @Inject constructor(
                 _snackbarMessage.emit(error.localizedMessage ?: "Failed to update occupancy")
                 // Revert to loaded state to let them try again without re-entering apartment
                 _uiState.update { currentState }
+            }
+        }
+    }
+
+    fun fetchLatestBillingCycle() {
+        viewModelScope.launch {
+            billingRepository.getLatestBillingCycle().collect { cycle ->
+                _latestBillingCycle.value = cycle
+            }
+        }
+    }
+
+    fun deleteLatestBillingCycle() {
+        val cycle = _latestBillingCycle.value ?: return
+        viewModelScope.launch {
+            try {
+                billingRepository.deleteBillingCycle(cycle.id)
+                _snackbarMessage.emit("Billing cycle deleted successfully")
+            } catch (e: Exception) {
+                _snackbarMessage.emit(e.localizedMessage ?: "Failed to delete billing cycle")
             }
         }
     }
