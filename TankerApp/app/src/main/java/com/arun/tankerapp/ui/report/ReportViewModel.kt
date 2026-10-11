@@ -37,6 +37,7 @@ data class ReportUiState(
 @HiltViewModel
 class ReportViewModel @Inject constructor(
     private val billingRepository: BillingRepository,
+    private val tankerPricingRepository: com.arun.tankerapp.core.data.repository.TankerPricingRepository,
     private val reportGenerator: com.arun.tankerapp.core.domain.ReportGenerator,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val savedStateHandle: SavedStateHandle,
@@ -110,16 +111,26 @@ class ReportViewModel @Inject constructor(
             launchCatching {
                 // Get the latest cycle endDate from Firebase as From Date
                 val lastCycleEndDate = billingRepository.getLatestCycleEndDate().firstOrNull()
-                val fromDate = lastCycleEndDate?.plusDays(1) 
-                    ?: LocalDate.now().withDayOfMonth(1) // Default to 1st of current month if no cycle exists
+                val fromDate = if (isHistoryMode && startDateArg != null) {
+                    LocalDate.parse(startDateArg)
+                } else {
+                    lastCycleEndDate?.plusDays(1) ?: LocalDate.now().withDayOfMonth(1)
+                }
                 
-                val currentDate = LocalDate.now() // To Date
+                val currentDate = if (isHistoryMode && endDateArg != null) {
+                    LocalDate.parse(endDateArg)
+                } else {
+                    LocalDate.now()
+                }
+
+                val priceHistory = tankerPricingRepository.getPricingHistory().firstOrNull() ?: emptyList()
                 
                 val file = reportGenerator.generateCsvReport(
                     bills = state.bills, 
                     totalTankers = state.totalTankers,
                     fromDate = fromDate,
-                    toDate = currentDate
+                    toDate = currentDate,
+                    priceHistory = priceHistory
                 )
                 
                 val uri = reportGenerator.getUriForFile(file)

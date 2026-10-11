@@ -42,3 +42,10 @@ data class BillingCycleDocument(
     val totalTankers: Int = 0,
     val ownerId: String = ""
 )
+
+data class TankerPriceDocument(
+    @DocumentId val id: String? = null,
+    val effectiveDate: String = "",
+    val price: Double = 0.0,
+    val ownerId: String = "Global"
+)

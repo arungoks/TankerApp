@@ -122,6 +122,9 @@ fun TankerApp(
                     },
                     onNavigateToEditBillingCycle = {
                         navController.navigate(Screen.EditBillingCycle.route)
+                    },
+                    onNavigateToManageTankerPricing = {
+                        navController.navigate(Screen.ManageTankerPricing.route)
                     }
                 )
             }
@@ -136,6 +139,14 @@ fun TankerApp(
 
             composable(Screen.EditBillingCycle.route) {
                 EditBillingCycleScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(Screen.ManageTankerPricing.route) {
+                com.arun.tankerapp.ui.admin.pricing.ManageTankerPricingScreen(
                     onNavigateBack = {
                         navController.popBackStack()
                     }

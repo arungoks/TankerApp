@@ -19,4 +19,5 @@ sealed class Screen(val route: String) {
     object AdminView : Screen("admin_view")
     object ModifyApartment : Screen("modify_apartment")
     object EditBillingCycle : Screen("edit_billing_cycle")
+    object ManageTankerPricing : Screen("manage_tanker_pricing")
 }

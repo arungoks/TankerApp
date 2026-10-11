@@ -39,7 +39,8 @@ class ReportGenerator @Inject constructor(
         bills: List<ApartmentBill>, 
         totalTankers: Int, 
         fromDate: java.time.LocalDate, 
-        toDate: java.time.LocalDate
+        toDate: java.time.LocalDate,
+        priceHistory: List<com.arun.tankerapp.core.data.model.TankerPrice> = emptyList()
     ): File {
         val generationDate = java.time.LocalDate.now()
         val file = File(context.cacheDir, "reports/Tanker_Bill_$generationDate.csv")
@@ -51,23 +52,6 @@ class ReportGenerator @Inject constructor(
 
         // Pre-calculate per-head costs for each date
         val dailyCosts = mutableMapOf<java.time.LocalDate, Double>()
-        val properties = java.util.Properties()
-        var tankerCostConfig = 4843.0
-        try {
-            context.assets.open("config.properties").use { inputStream ->
-                properties.load(inputStream)
-                // Use a generic default or the new value if property is missing, though we expect it to be there.
-                // If we want the code to purely rely on config, we might not need to update this, 
-                // but for consistency with the "current" price, let's update the fallback.
-                val costProp = properties.getProperty("tanker_cost")
-                if (costProp != null) {
-                     tankerCostConfig = costProp.toDouble()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        val TANKER_COST = tankerCostConfig
 
         dates.forEach { date ->
             // Total Tankers on this date (Max of any apartment's record for this date as it represents the global count)
@@ -78,8 +62,10 @@ class ReportGenerator @Inject constructor(
             // Total Occupants on this date (Sum of all apartments)
             val totalOccupantsOnDate = bills.sumOf { it.dailyOccupancyBreakdown[date] ?: 0 }
 
+            val tankerCostOnDate = com.arun.tankerapp.core.data.repository.TankerPricingRepository.getPriceForDate(date, priceHistory)
+
             if (totalTankersOnDate > 0 && totalOccupantsOnDate > 0) {
-                val dailyTotalCost = totalTankersOnDate * TANKER_COST
+                val dailyTotalCost = totalTankersOnDate * tankerCostOnDate
                 val perHeadCost = dailyTotalCost / totalOccupantsOnDate
                 dailyCosts[date] = perHeadCost
             } else {

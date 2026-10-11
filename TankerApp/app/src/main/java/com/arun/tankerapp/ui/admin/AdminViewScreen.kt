@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Delete
@@ -30,6 +31,7 @@ fun AdminViewScreen(
     onNavigateBack: () -> Unit,
     onNavigateToModifyApartment: () -> Unit,
     onNavigateToEditBillingCycle: () -> Unit,
+    onNavigateToManageTankerPricing: () -> Unit,
     viewModel: AdminViewModel = hiltViewModel()
 ) {
     val latestCycle by viewModel.latestBillingCycle.collectAsState()
@@ -50,6 +52,11 @@ fun AdminViewScreen(
             title = "Modify Apartment Data",
             icon = Icons.Default.Home,
             onClick = onNavigateToModifyApartment
+        ),
+        AdminMenuItem(
+            title = "Manage Tanker Pricing",
+            icon = Icons.Default.Edit,
+            onClick = onNavigateToManageTankerPricing
         ),
         AdminMenuItem(
             title = "Edit Last Billing Cycle",
